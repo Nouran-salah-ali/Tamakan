@@ -5,9 +5,6 @@
 //  Created by shahad khaled on 28/05/1447 AH.
 //
 
-
-
-
 //
 //  ContentView.swift
 //  تمكّن
@@ -21,9 +18,34 @@ import AVFoundation
 struct recView: View {
     @StateObject var audioVM = AudioRecordingViewModel()
     @State var isRecording = false
-//    @State private var scale: CGFloat = 1.0
-//       var mic: String
+    @State var size :CGFloat = 1
+    @State var size1 :CGFloat = 1
+    @State private var animationTimer: Timer?
        
+    func startSizeLoop() {
+        // Reset before starting
+        size = 1
+        size1 = 1
+        
+        // Invalidate any old timer
+        animationTimer?.invalidate()
+        
+        // Make a timer that fires every 1 second
+        animationTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { _ in
+            withAnimation(.easeInOut(duration: 0.8)) {
+                size = (size == 1) ? 1.2 : 1
+                size1 = (size1 == 1.3) ? 1 : 1.3
+            }
+        }
+    }
+
+    func stopSizeLoop() {
+        animationTimer?.invalidate()
+        animationTimer = nil
+        size = 1
+    }
+    
+    
     var body: some View {
         NavigationStack {
             ZStack {
@@ -52,28 +74,57 @@ struct recView: View {
                     }
                     
                     ZStack{
-                        Image("Aud1")
-                        Image("Aud2")
-                        Image("Aud3")
-                        Image("Aud4")
-                        Image("Aud5")
-                        Image("Aud6")
+                        Circle()
+                            .blur(radius: 10)
+                            .frame(width: 200, height: 200)
+                            .foregroundStyle(Color.aud1)
+                            .scaleEffect(size)
+
+                        Circle()
+                            .blur(radius: 4)
+                            .frame(width: 150, height: 150)
+                            .foregroundStyle(Color.aud2)
+                            .scaleEffect(size1)
+
+                        Circle()
+                            .blur(radius: 4)
+                            .frame(width: 100, height: 100)
+                            .foregroundStyle(Color.aud3)
+                            .scaleEffect(size)
+
+                        Circle()
+                            .blur(radius: 5)
+                            .frame(width: 65, height: 65)
+                            .foregroundStyle(Color.white)
+                            .scaleEffect(size1)
                         
+                        Circle()
+                            .blur(radius: 5)
+                            .frame(width: 50, height: 50)
+                            .foregroundStyle(Color.black)
+                            .scaleEffect(size)
+                        
+                        Circle()
+                            .frame(width: 50 , height: 50 )
+                            .foregroundStyle(Color.black)
                         
                         Button {
-                                if isRecording {
-                                    audioVM.stopRecording()
-                                } else {
-                                    audioVM.startRecording()
-                                }
-                                isRecording.toggle()
-                            } label: {
-                                Image(isRecording ? "Mic4" : "Mic")   // changes image while recording
-                                    .frame(width: 60, height: 60)
-                                    .padding()
+                            if isRecording {
+                                audioVM.stopRecording()
+                                stopSizeLoop()
+                            } else {
+                                audioVM.startRecording()
+                                startSizeLoop()
                             }
+                            isRecording.toggle()
+                        } label: {
+                            Image(isRecording ? "Mic4" : "Mic")   // changes image while recording
+                                .frame(width: 60, height: 60)
+                                .padding()
+                        }
                         
                     }
+                    .frame(width: 200, height: 200) // fixed layout footprint for animated stack
                     // Place this ZStack just above the time label with a tight gap
                     .offset(x: 0, y: 60)
                     .padding(.bottom, 8)
