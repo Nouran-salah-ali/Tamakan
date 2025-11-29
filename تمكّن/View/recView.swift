@@ -10,12 +10,12 @@ import AVFoundation
 import Combine
 
 struct recView: View {
+    @EnvironmentObject var recViewModel: RecViewModel
     @StateObject var audioVM = AudioRecordingViewModel()
     @State var isRecording = false
 //    @State var size :CGFloat = 1
 //    @State var size1 :CGFloat = 1
 //    @State private var animationTimer: Timer?
-    @EnvironmentObject var recViewModel : RecViewModel
 //    @State private var time = 0.0
 //    @State private var timer: Timer?
     
@@ -144,11 +144,11 @@ struct recView: View {
                     .padding(.bottom, 8)
                     
                     let hours = Int(recViewModel.time) / 3600
-                    let minutes = (Int(time) % 3600) / 60
-                    let seconds = Int(time) % 60
-                    let milliseconds = Int((time.truncatingRemainder(dividingBy: 1)) * 100)
+                    let minutes = (Int(recViewModel.time) % 3600) / 60
+                    let seconds = Int(recViewModel.time) % 60
+                    let milliseconds = Int((recViewModel.time.truncatingRemainder(dividingBy: 1)) * 100)
                     
-                    Text(String(format : "%02d:%02d:%02d.%02d", hours, minutes, seconds, milliseconds, time))
+                    Text(String(format : "%02d:%02d:%02d.%02d", hours, minutes, seconds, milliseconds, recViewModel.time))
                         .offset(x: 0, y: 55)
                         .monospacedDigit()
                     
@@ -189,4 +189,6 @@ struct recView: View {
 
 #Preview {
     recView()
+        .environmentObject(RecViewModel())
 }
+
