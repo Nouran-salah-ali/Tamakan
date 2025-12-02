@@ -114,6 +114,8 @@ struct Recording: Identifiable {
 }
 
 struct RecordingCard: View {
+    @State private var showText = false
+
     let id: Int
     var title: String
     var date: String
@@ -168,7 +170,14 @@ struct RecordingCard: View {
 
 
                     HStack(spacing: 28) {
-                        Image(systemName: "text.bubble")
+                        Button {
+                            showText = true
+                        } label: {
+                            Image(systemName: "text.bubble")
+                        }
+                        .sheet(isPresented: $showText) {
+                                ShowText()
+                            }
                         Image(systemName: "gobackward.15")
                         Image(systemName: "play.circle.fill")
                             .font(.system(size: 42))
