@@ -1,109 +1,203 @@
 //
-//  Untitled.swift
+//  AudioRecordingViewModel.swift
 //  voiceTamakan
 //
-//  Created by nouransalah on 27/05/1447 AH.
+//  Created by Nouran Salah
 //
 
 import AVFoundation
 import Combine
-
-
+import WhisperKit
 
 class AudioRecordingViewModel: ObservableObject {
-   
 
-    let audioEngine = AVAudioEngine()
-    var audioFile: AVAudioFile?
-    var player: AVAudioPlayer?
-    var lastRecordingURL: URL?
+    // MARK: - Published UI variables
+    @Published var finalText: String = ""
 
-    
+    // MARK: - Audio
+    private let audioEngine = AVAudioEngine()
+    private var audioFile: AVAudioFile?
+    private var player: AVAudioPlayer?
+    private var lastRecordingURL: URL?
 
-    // MARK: - 🔹 method to record voice
+    private var bufferQueue: [AVAudioPCMBuffer] = []
 
+    // MARK: - Whisper model (single instance)
+    private var whisper: WhisperKit?
+
+    // MARK: - Init (load model only once)
+    init() {
+        Task {
+            do {
+                print("⏳ Loading Whisper model...")
+                //whisper = try await WhisperKit(WhisperKitConfig(model: "large"))
+                whisper = try await WhisperKit(WhisperKitConfig(model: "medium"))
+                print("✅ Whisper model loaded successfully")
+            } catch {
+                print("❌ Whisper init error:", error.localizedDescription)
+            }
+        }
+    }
+
+
+    // MARK: - Start Recording
     func startRecording() {
-        // MARK: - 1 premtion to allow open microfone
-   
+
+        // Request microphone and start session
         let session = AVAudioSession.sharedInstance()
         do {
             try session.setCategory(.playAndRecord, mode: .default)
             try session.setActive(true)
+            print("🎙️ Session READY")
         } catch {
-            print("Session error: \(error)")
+            print("❌ Session error:", error)
         }
-        
-        // MARK: - 2 input from microfone
 
         let inputNode = audioEngine.inputNode
         let format = inputNode.inputFormat(forBus: 0)
-        
-        // MARK: - 3 Create file to save audio
-                let timestamp = Date().timeIntervalSince1970
-                let fileName = "recording_\(timestamp).caf"
-                print(fileName)
+
+        let timestamp = Date().timeIntervalSince1970
+        let fileName = "recording_\(timestamp).caf"
         let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             .appendingPathComponent(fileName)
-        lastRecordingURL = url //
+        lastRecordingURL = url
 
         do {
             audioFile = try AVAudioFile(forWriting: url, settings: format.settings)
+            print("📁 File created: \(fileName)")
         } catch {
-            print("File error: \(error)")
+            print("❌ File creation error:", error)
         }
-        
-        
-        
-        
-        // MARK: - 4 preper pipeline
+
+        bufferQueue.removeAll()
         inputNode.removeTap(onBus: 0)
 
-        inputNode.installTap(onBus: 0, bufferSize: 1024, format: format) { buffer, time in
-            print("Captured audio: \(buffer.frameLength)")
+        // Install audio tap
+        inputNode.installTap(onBus: 0, bufferSize: 1024, format: format) { [weak self] buffer, _ in
+            guard let self = self else { return }
+
+            // Write buffer to main recording file
             do {
                 try self.audioFile?.write(from: buffer)
             } catch {
-                print("Write error: \(error)")
+                print("❌ Write error:", error)
+            }
+
+            self.bufferQueue.append(buffer)
+            print("🎧 Captured audio: \(buffer.frameLength)")
+
+            // Every ~2–3 seconds → process chunk
+            let requiredFrames = AVAudioFrameCount(format.sampleRate * 2.5)
+            let totalFrames = self.bufferQueue.reduce(0) { $0 + $1.frameLength }
+
+            if totalFrames >= requiredFrames {
+                let chunk = self.mergeBuffers(self.bufferQueue, format: format)
+                self.bufferQueue.removeAll()
+
+                let tempURL = self.saveBufferToFile(chunk)
+                self.transcribeChunk(at: tempURL)
             }
         }
-        //start engine
+
+        // Start engine
         do {
             try audioEngine.start()
-            print("Engine started")
+            print("▶️ Engine started")
         } catch {
-            print("Engine start error: \(error)")
+            print("❌ Engine start error:", error)
         }
-    }//start
-    // MARK: - 🔹 method to stopRecording
+    }
 
+
+    // MARK: - Stop Recording
     func stopRecording() {
         audioEngine.stop()
         audioEngine.inputNode.removeTap(onBus: 0)
-        print("Engine stopped")
-    }//stop
-    
-    
-    
-    // MARK: - 🔹 method to playRecording
+        print("⏹️ Engine stopped")
+    }
 
+
+    // MARK: - Play last recording
     func playRecording() {
-//        let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-//            .appendingPathComponent("recording.caf")
-        //variable will hold the path of the audio file on the device. asking iOS: Give me the path to the Documents folder of this app.🔹 for: .documentDirectory → which type of folder 🔹 in: .userDomainMask → for this app only (not system-wide) This returns an array of URLs → we take the first one [0]..caf = Core Audio Format
-        
         guard let url = lastRecordingURL else {
-            print("No recording found")
+            print("⚠️ No recording found")
             return
         }
         do {
             player = try AVAudioPlayer(contentsOf: url)
             player?.play()
-            print("record is playing")
+            print("🔊 Playing recording")
         } catch {
-            print("Playback error: \(error)")
+            print("❌ Playback error:", error)
         }
     }
-    
 
 
-}//class
+    // MARK: - Transcription
+    private func transcribeChunk(at url: URL) {
+        Task { [weak self] in
+            guard let self = self, let whisper = self.whisper else {
+                print("⚠️ Whisper model not ready")
+                return
+            }
+
+            do {
+                print("⏳ Transcribing chunk...")
+
+                let results = try await whisper.transcribe(audioPath: url.path)
+                let text = results.first?.text ?? ""
+
+                DispatchQueue.main.async {
+                    if !text.isEmpty {
+                        self.finalText += text + " "
+                        print("🟢 Transcribed:", text)
+                    } else {
+                        print("⚠️ Empty transcription")
+                    }
+                }
+
+            } catch {
+                print("❌ Transcription error:", error.localizedDescription)
+            }
+        }
+    }
+
+    // MARK: - Buffer merge
+    private func mergeBuffers(_ buffers: [AVAudioPCMBuffer], format: AVAudioFormat) -> AVAudioPCMBuffer {
+        let totalFrames = buffers.reduce(0) { $0 + $1.frameLength }
+        guard let merged = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: totalFrames) else {
+            return buffers[0]
+        }
+
+        merged.frameLength = totalFrames
+
+        var offset: AVAudioFrameCount = 0
+        for buffer in buffers {
+            for ch in 0..<Int(format.channelCount) {
+                let src = buffer.floatChannelData![ch]
+                let dst = merged.floatChannelData![ch]
+                memcpy(dst.advanced(by: Int(offset)),
+                       src,
+                       Int(buffer.frameLength) * MemoryLayout<Float>.size)
+            }
+            offset += buffer.frameLength
+        }
+        return merged
+    }
+
+
+    // MARK: - Save buffer to temp file
+    private func saveBufferToFile(_ buffer: AVAudioPCMBuffer) -> URL {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("chunk.caf")
+
+        do {
+            let file = try AVAudioFile(forWriting: url, settings: buffer.format.settings)
+            try file.write(from: buffer)
+            print("📦 Chunk saved:", url.path)
+        } catch {
+            print("❌ Error saving chunk:", error)
+        }
+
+        return url
+    }
+}

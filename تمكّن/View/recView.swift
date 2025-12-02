@@ -36,11 +36,16 @@ struct recView: View {
                 VStack{
                     
                     VStack(alignment: .leading){
-                        Text("Hello i'm a student at apple")
-                            .font(.title)
-                            .foregroundColor(.gray)
-                        Text("and it's challenge three")
-                            .font(.title)
+//                        Text("Hello i'm a student at apple")
+//                            .font(.title)
+//                            .foregroundColor(.gray)
+//                        Text("and it's challenge three")
+//                            .font(.title)
+                    //TRANSCIPTED TEXT HERE ⚠️ FRONT END NEED TO BE FIXED
+                    Text(audioVM.finalText.isEmpty ? "Say something..." : audioVM.finalText)
+                        .font(.title)
+                        
+                        .animation(.easeInOut, value: audioVM.finalText)
                     }
                     
                     ZStack{
