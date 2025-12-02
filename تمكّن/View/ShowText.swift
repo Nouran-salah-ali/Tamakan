@@ -23,7 +23,8 @@ struct RoundedCorner: Shape {
 
 struct ShowText: View {
     @State private var text = ""
-    @Environment(\.colorScheme) var colorScheme   // نعرف لايت أو دارك
+    @Environment(\.colorScheme) var colorScheme
+    @Environment(\.dismiss) var dismiss
     
     var todayDate: String {
         let f = DateFormatter()
@@ -32,23 +33,18 @@ struct ShowText: View {
         return f.string(from: Date())
     }
     
-    // خلفية الشيت
     var sheetBackground: Color {
         if colorScheme == .dark {
-            // نفس الدارك اللي حاطّته
             return Color(red: 0.13, green: 0.13, blue: 0.13)
         } else {
-            // رمادي فاتح مره في اللايت
-            return Color(.systemGray6) // أو Color(red: 0.95, green: 0.95, blue: 0.95)
+            return Color(.systemGray6)
         }
     }
     
-    // لون النص
     var textColor: Color {
         colorScheme == .dark ? .white : .black
     }
     
-    // لون الـ Divider
     var dividerColor: Color {
         if colorScheme == .dark {
             return Color.white.opacity(0.9)
@@ -65,9 +61,18 @@ struct ShowText: View {
                     .foregroundColor(textColor)
                 
                 HStack {
-                    Text("انهاء")
-                        .foregroundColor(textColor)
+                    Button("حفظ") {
+                        print("Saved text:", text)
+                        dismiss()
+                    }
+                    .foregroundColor(textColor)
+                    
                     Spacer()
+                    
+                    Button("إنهاء") {
+                        dismiss()
+                    }
+                    .foregroundColor(textColor)
                 }
             }
             .font(.system(size: 18, weight: .regular))
