@@ -41,6 +41,10 @@ struct recView: View {
                             .foregroundColor(.gray)
                         Text("and it's challenge three")
                             .font(.title)
+                        Button(action: {
+                                        audioVM.playRecording() 
+                        }) { Text("Play Recording") }
+                        
                     }
                     
                     ZStack{

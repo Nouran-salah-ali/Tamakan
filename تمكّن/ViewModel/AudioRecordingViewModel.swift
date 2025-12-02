@@ -16,6 +16,7 @@ class AudioRecordingViewModel: ObservableObject {
     let audioEngine = AVAudioEngine()
     var audioFile: AVAudioFile?
     var player: AVAudioPlayer?
+    var lastRecordingURL: URL?
 
     
 
@@ -38,8 +39,12 @@ class AudioRecordingViewModel: ObservableObject {
         let format = inputNode.inputFormat(forBus: 0)
         
         // MARK: - 3 Create file to save audio
+                let timestamp = Date().timeIntervalSince1970
+                let fileName = "recording_\(timestamp).caf"
+                print(fileName)
         let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("recording.caf")
+            .appendingPathComponent(fileName)
+        lastRecordingURL = url //
 
         do {
             audioFile = try AVAudioFile(forWriting: url, settings: format.settings)
@@ -82,12 +87,18 @@ class AudioRecordingViewModel: ObservableObject {
     // MARK: - 🔹 method to playRecording
 
     func playRecording() {
-        let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("recording.caf")
+//        let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+//            .appendingPathComponent("recording.caf")
         //variable will hold the path of the audio file on the device. asking iOS: Give me the path to the Documents folder of this app.🔹 for: .documentDirectory → which type of folder 🔹 in: .userDomainMask → for this app only (not system-wide) This returns an array of URLs → we take the first one [0]..caf = Core Audio Format
+        
+        guard let url = lastRecordingURL else {
+            print("No recording found")
+            return
+        }
         do {
             player = try AVAudioPlayer(contentsOf: url)
             player?.play()
+            print("record is playing")
         } catch {
             print("Playback error: \(error)")
         }

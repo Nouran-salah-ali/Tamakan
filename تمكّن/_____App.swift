@@ -8,8 +8,10 @@ struct TamakanApp: App {
 
     var body: some Scene {
         WindowGroup {
-            GetStarted()
-                .environmentObject(recViewModel)
+            //GetStarted()
+            recView()
+                .environmentObject(RecViewModel())
+                //.environmentObject(recViewModel)
         }
     }
 }
