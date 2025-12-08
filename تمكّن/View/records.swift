@@ -24,7 +24,7 @@ struct records: View {
     @State private var expandedID: UUID? = nil
     @Query private var record :[RecordingModel]
     @State var progress: Double = 0.2
- 
+    @Environment(\.layoutDirection) var layoutDirection
 
 
     var body: some View {
@@ -44,22 +44,23 @@ struct records: View {
                     Spacer()
                 }//v
                 
-                VStack(alignment: .trailing, spacing: 20) {
-                    Spacer()
-                    
-                    Text("التسجيلات")
-                        .font(.system(size: 32, weight: .bold))
-                        .foregroundColor(.primary)
-                        .frame(maxWidth: .infinity, alignment: .trailing)
-                        .padding(.trailing, 12)
-                    
-                    TextField("ابحث…", text: $searchText)
-                        .padding(12)
-                        .foregroundColor(.primary)
-                        .background(.primary.opacity(0.08))
-                        .cornerRadius(14)
-                        .multilineTextAlignment(.trailing)
-                        .padding(.horizontal, 20)
+                VStack(alignment: layoutDirection == .rightToLeft ? .trailing : .leading, spacing: 20) {
+                            Spacer()
+
+                            Text("Records")
+                                .font(.system(size: 32, weight: .bold))
+                                .foregroundColor(.primary)
+                                .frame(maxWidth: .infinity,
+                                       alignment: layoutDirection == .rightToLeft ? .trailing : .leading)
+                                .padding(.horizontal, 25)
+
+                            TextField("search...", text: $searchText)
+                                .padding(12)
+                                .foregroundColor(.primary)
+                                .background(.primary.opacity(0.08))
+                                .cornerRadius(14)
+                                .multilineTextAlignment(layoutDirection == .rightToLeft ? .trailing : .leading)
+                                .padding(.horizontal, 20)
                     
                     ScrollView {
                         VStack(spacing: 18) {
