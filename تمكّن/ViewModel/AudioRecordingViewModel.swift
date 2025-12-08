@@ -15,6 +15,7 @@ class AudioRecordingViewModel: ObservableObject {
 
     // MARK: - Published UI variables
     @Published var finalText: String = ""
+    @Published var currentComment: String = ""
 
     // MARK: - Audio
     private let audioEngine = AVAudioEngine()
@@ -169,6 +170,9 @@ class AudioRecordingViewModel: ObservableObject {
                         if !cleaned.isEmpty {
                             self.finalText += cleaned + " "
                         }
+                       // Generate comment from analysis
+                       self.processNewText(raw)
+
 
                         // 4️⃣ Stutter detection using cleaned version (optional)
                         if self.analyzeStutter(cleaned) {
@@ -329,7 +333,36 @@ class AudioRecordingViewModel: ObservableObject {
 
         return false
     }
+    
+    func commentForAnalysis(_ text: String) -> String {
+           
+           if detectStutterComment(text) {
+               return "مد"
+           }
+           
+           if detectBlocking(text) {
+               return "blocking"
+           }
+           
+           if analyzeStutter(text) {
+               return "repetetion"
+           }
+           
+           return ""
+       }
+    
+    func processNewText(_ text: String) {
+        let comment = commentForAnalysis(text)
+        DispatchQueue.main.async {
+            self.currentComment = comment
+        }
+    }
+    
+    func skipComment() {
+        currentComment = ""   // clears the comment
+    }
 
+    
     // MARK: - Whisper Metadata Cleaner (remove ALL tags)
     func removeWhisperMetadata(from text: String) -> String {
         var s = text

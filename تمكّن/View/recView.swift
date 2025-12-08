@@ -129,20 +129,24 @@ struct recView: View {
                     Text(String(format : "%02d:%02d:%02d.%02d", hours, minutes, seconds, milliseconds, recViewModel.time))
                         .offset(x: 0, y: 55)
                         .monospacedDigit()
-                    
-                    ZStack{
-                        Text("Take a Breath")
-                            .bold()
-                            .padding()
-                            .frame(minWidth: 350, minHeight: 180, alignment: .topLeading)
-                            .glassEffect(.clear, in: .rect(cornerRadius: 35))
-                            .offset(x: 0, y: 80)
-                        
-                        Button("Skip") {
+                    if !audioVM.currentComment.isEmpty{
+                        ZStack{
+                            Text(audioVM.currentComment)
+                                .bold()
+                                .padding()
+                                .frame(minWidth: 350, minHeight: 180, alignment: .topLeading)
+                                .glassEffect(.clear, in: .rect(cornerRadius: 35))
+                                .offset(x: 0, y: 80)
+                                .animation(.easeInOut, value: audioVM.currentComment)
                             
+                            Button("Skip") {
+                                audioVM.skipComment()
+                            }
+                            .buttonStyle(.glass)
+                            .offset(x: 125, y: 130)
                         }
-                        .buttonStyle(.glass)
-                        .offset(x: 125, y: 130)
+                        .transition(.opacity) // optional fade
+                        .animation(.easeInOut, value: audioVM.currentComment)
                     }
                 }
                 .ignoresSafeArea()
